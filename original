@@ -13,21 +13,23 @@ resultdir=getDirectory("Choose Result Folder");
 axondir=getDirectory("Choose AxonShow Folder");
 
 //variable setup
-var greenThreshold, areapercent, scale, minsize, maxsize, name, gcount, grcount, axonlength, axonflag;
-var greenstring, resultlist, FolderCreate, foldername;
+var greenThreshold, redThreshold, areapercent, scale, minsize, maxsize, name, gcount, rcount, grcount, rgcount, axonlength, axonflag
+var greenstring, redstring, resultlist, FolderCreate, foldername;
 // input parameter
 parameterinput();
 
 print("Raw_Folder:	"+rawdir);
 print("Result_Folder:	"+resultdir);
-print("GreenThreshold	AreaPercent(%)	PixelScale(um/pixel)	Min_Puncta_Size 	Max_Puncta_Size");
-print(greenThreshold+"	"+areapercent+"	"+scale+"	"+minsize+"	"+maxsize);
-print(" 	GreenPuncta#	AxonLength(um)	Density_G(#/um)");
+print("GreenThreshold	RedThreshold	AreaPercent(%)	PixelScale(um/pixel)	Min_Puncta_Size	Max_Puncta_Size");
+print(greenThreshold+"	"+redThreshold+"	"+areapercent+"	"+scale+"	"+minsize+"	"+maxsize);
+print(" 	GreenPuncta#	RedPuncta#	GR#	RG#	AxonLength(um)	Density_R(#/um)	Density_G(#/um)");
 
 //OK! so I think what's happening here is the mkdir command is broken and so there's no path for it to find 
 //the new folder - need to make a path.
 
 greenstring="Filename	#	Area	Perim	%Area\n";
+redstring="Filename	#	Area	Perim	%Area\n";
+
 folderlist=getFileList(rawdir);
 
 Dialog.create("Conditions");
@@ -52,13 +54,15 @@ for(f=0;f<FolderCreate;f++)
 		initialize();
 		// create green red mask images and roi files
 		mask("green"); 
-		// amsk axon, and get length;
+		mask("red");
+		// mask axon, and get length;
 		axon();
 		//measure
 		measure();
 		temptitle = File.getName(folderpath);
 		}
 	File.saveString(greenstring, folderpath+temptitle+"_GreenArea.xls");
+	File.saveString(redstring, folderpath+temptitle+"_RedArea.xls");  
 	}
 selectWindow("Log");
 saveAs("Text", resultdir+"Summary.xls");
@@ -67,20 +71,22 @@ selectWindow("Results"); run("Close");
 selectWindow("ROI Manager"); run("Close");
 
 function parameterinput()
- {
+	{
 	Dialog.create("Parameter");
-	Dialog.addNumber("Green Threshold:", 30);
-	Dialog.addNumber("Area Percent (%):", 25);
-	Dialog.addNumber("Pixel Scale (um/pixel):", 0.1705);
-	Dialog.addNumber("Min Punta Size (pixel):", 1);
-	Dialog.addNumber("Max Punta Size (pixel):", 60);
+		Dialog.addNumber("Green Threshold:", 30);
+		Dialog.addNumber("Red Threshold:", 30);
+		Dialog.addNumber("Area Percent (%):", 25);
+		Dialog.addNumber("Pixel Scale (um/pixel):", 0.1705);
+		Dialog.addNumber("Min Punta Size (pixel):", 1);
+		Dialog.addNumber("Max Punta Size (pixel):", 60);
 	Dialog.show();
 	greenThreshold = Dialog.getNumber();
+	redThreshold = Dialog.getNumber();
 	areapercent = Dialog.getNumber();  
 	scale = Dialog.getNumber();  
 	minsize = Dialog.getNumber();  
 	maxsize = Dialog.getNumber();  
- }
+	}
 
 function initialize()
  {
@@ -90,6 +96,7 @@ function initialize()
 	run("Split Channels");
 	rename("axon");
 	selectImage(name+" (green)"); rename("green");
+	selectImage(name+" (red)"); rename("red");
  }
 
 function mask(channel)
@@ -98,6 +105,9 @@ function mask(channel)
 	run("Gaussian Blur...", "sigma=1");
 	if( channel == "green") {
 		setThreshold(greenThreshold, 255);
+		}
+	if( channel == "red") {
+		setThreshold(redThreshold, 255);
 		}
 	run("Find Maxima...", "noise=10 output=[Segmented Particles] above");
 	run("Analyze Particles...", "size="+minsize+"-"+maxsize+" pixel show=Masks add");
@@ -112,6 +122,12 @@ function mask(channel)
 		{
 		for(j=0;j<nResults;j++) {
 			greenstring = greenstring+filelist[d]+"	"+j+1+"	"+getResult("Area",j)+"	"+getResult("Perim.",j)+" 	"+getResult("%Area",j)+"\n";
+			}
+		}
+	if( channel == "red")
+		{
+		for(j=0;j<nResults;j++) {
+			redstring = redstring+filelist[d]+"	"+j+1+"	"+getResult("Area",j)+"	"+getResult("Perim.",j)+" 	"+getResult("%Area",j)+"\n";
 			}
 		}
   
@@ -179,8 +195,22 @@ function measure()
 	roiManager("reset"); 
 	run("Clear Results");
 	
-	//print(" 	GreenPuncta#	RedPuncta#	GR#	RG#	AxonLength(um)	Density_G(#/um)");
-	print(filelist[f]+"	"+gcount+"	"+axonlength+"	"+(gcount/axonlength));
+	if( rcount > 0 ) {
+  		roiManager("Open", folderpath+name+"_green_ROI.zip");
+		}
+	run("Clear Results");
+	roiManager("Measure");
+	rgcount=0;
+	for(i=0;i<roiManager("Count");i++) {
+		if( getResult("%Area",i) >= areapercent ) {
+			rgcount++;
+			}
+		}
+	roiManager("reset"); 
+	run("Clear Results");
+	
+	//print(" 	GreenPuncta#	RedPuncta#	GR#	RG#	AxonLength(um)	Density_R(um/#)	Density_G(um/#)");
+	print(filelist[f]+"	"+gcount+"	"+rcount+"	"+grcount+"	"+rgcount+"	"+axonlength+"	"+(rcount/axonlength)+"	"+(gcount/axonlength));
  
 	run("Close All"); 
 	}
