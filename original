@@ -37,15 +37,16 @@ Dialog.create("Conditions");
 	Dialog.addChoice("",conditions);
 Dialog.show();
 FolderCreate = Dialog.getChoice();
+
 for(f=0;f<FolderCreate;f++) 
 	{
 	foldername = File.getName(rawdir+folderlist[f]);
 	File.makeDirectory(resultdir+foldername);
+	folderpath = getDirectory("Choose folder for condition " + (f+1)); 
 	rawlist=getFileList(rawdir+foldername);
 	filelist=getFileList(rawdir+folderlist[f]);
 	print(folderlist[f]);
-	folderpath = getDirectory("Choose folder for condition " + (f+1)); 
-	for(f=0;f<filelist.length;f++)
+	for(d=0;d<filelist.length;d++)
 		{
 		// initialize :  open file, split channel, name by "red"/"green"/"axon"
 		initialize();
@@ -83,7 +84,7 @@ function parameterinput()
 
 function initialize()
  {
-	open(rawdir+foldername+File.separator+rawlist[f]);
+	open(rawdir+foldername+File.separator+rawlist[d]);
 	name=getInfo("image.filename");
 	run("Properties...", "channels=1 slices=1 frames=1 unit=um pixel_width="+scale+" pixel_height=0.1705 voxel_depth=1");
 	run("Split Channels");
@@ -110,7 +111,7 @@ function mask(channel)
 	if( channel == "green")
 		{
 		for(j=0;j<nResults;j++) {
-			greenstring = greenstring+filelist[f]+"	"+j+1+"	"+getResult("Area",j)+"	"+getResult("Perim.",j)+" 	"+getResult("%Area",j)+"\n";
+			greenstring = greenstring+filelist[d]+"	"+j+1+"	"+getResult("Area",j)+"	"+getResult("Perim.",j)+" 	"+getResult("%Area",j)+"\n";
 			}
 		}
   
@@ -152,7 +153,7 @@ function axon()
 		axonlength= axonlength + getResult("Perim.",0) ;
 		axonlength = axonlength/2;
 
-		open(rawdir+foldername+File.separator+rawlist[f]);
+		open(rawdir+foldername+File.separator+rawlist[d]);
 		roiManager("Show All");
 		run("Flatten");
     	saveAs("Jpeg", axondir+foldername+"_"+name+"_show.jpg");
