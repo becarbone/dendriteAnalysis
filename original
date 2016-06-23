@@ -22,13 +22,12 @@ print("Raw_Folder:	"+rawdir);
 print("Result_Folder:	"+resultdir);
 print("GreenThreshold	RedThreshold	AreaPercent(%)	PixelScale(um/pixel)	Min_Puncta_Size	Max_Puncta_Size");
 print(greenThreshold+"	"+redThreshold+"	"+areapercent+"	"+scale+"	"+minsize+"	"+maxsize);
-print(" 	GreenPuncta#	RedPuncta#	GR#	RG#	AxonLength(um)	Density_R(#/um)	Density_G(#/um)");
+print(" 	GreenPuncta#	RedPuncta#	GR#	RG#	AxonLength(um)	Density_G(#/um)	Density_R(#/um)");
 
 //OK! so I think what's happening here is the mkdir command is broken and so there's no path for it to find 
 //the new folder - need to make a path.
 
-greenstring="Filename	#	Area	Perim	%Area\n";
-redstring="Filename	#	Area	Perim	%Area\n";
+
 
 folderlist=getFileList(rawdir);
 
@@ -42,11 +41,14 @@ FolderCreate = Dialog.getChoice();
 
 for(f=0;f<FolderCreate;f++) 
 	{
+	greenstring="Filename	#	Area	Perim	%Area\n";
+	redstring="Filename	#	Area	Perim	%Area\n";
 	foldername = File.getName(rawdir+folderlist[f]);
 	File.makeDirectory(resultdir+foldername);
 	folderpath = getDirectory("Choose folder for condition " + (f+1)); 
 	rawlist=getFileList(rawdir+foldername);
 	filelist=getFileList(rawdir+folderlist[f]);
+	resultpath = getFileList(folderpath);
 	print(folderlist[f]);
 	for(d=0;d<filelist.length;d++)
 		{
@@ -139,6 +141,9 @@ function mask(channel)
 	if( channel == "green" )  {
 		gcount = roiManager("Count");
 		}
+	if( channel == "red" )  {
+		rcount = roiManager("Count");
+		}
   
 	if( roiManager("Count") > 0 )
 		{
@@ -178,7 +183,6 @@ function axon()
 	roiManager("reset"); 
 	run("Clear Results");
 	}
-
 function measure()
 	{
 	if( gcount > 0 ) {
@@ -209,8 +213,8 @@ function measure()
 	roiManager("reset"); 
 	run("Clear Results");
 	
-	//print(" 	GreenPuncta#	RedPuncta#	GR#	RG#	AxonLength(um)	Density_R(um/#)	Density_G(um/#)");
-	print(filelist[f]+"	"+gcount+"	"+rcount+"	"+grcount+"	"+rgcount+"	"+axonlength+"	"+(rcount/axonlength)+"	"+(gcount/axonlength));
+	//print(" 	GreenPuncta#	RedPuncta#	GR#	RG#	AxonLength(um)	Density_G(um/#)	Density_R(um/#)");
+	print(name+"	"+gcount+"	"+rcount+"	"+grcount+"	"+rgcount+"	"+axonlength+"	"+(gcount/axonlength)+"	"+(rcount/axonlength));
  
 	run("Close All"); 
 	}
