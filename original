@@ -200,7 +200,7 @@ function measure()
 	run("Clear Results");
 	
 	if( rcount > 0 ) {
-  		roiManager("Open", folderpath+name+"_green_ROI.zip");
+  		roiManager("Open", folderpath+name+"_red_ROI.zip");
 		}
 	selectImage("green mask");
 	run("Clear Results");
