@@ -28,7 +28,6 @@ print(" 	GreenPuncta#	RedPuncta#	GR#	RG#	AxonLength(um)	Density_G(#/um)	Density_
 //the new folder - need to make a path.
 
 
-
 folderlist=getFileList(rawdir);
 
 Dialog.create("Conditions");
@@ -188,6 +187,7 @@ function measure()
 	if( gcount > 0 ) {
   		roiManager("Open", folderpath+name+"_green_ROI.zip");
 		}
+	selectImage("red mask");
 	run("Clear Results");
 	roiManager("Measure");
 	grcount=0;
@@ -202,6 +202,7 @@ function measure()
 	if( rcount > 0 ) {
   		roiManager("Open", folderpath+name+"_green_ROI.zip");
 		}
+	selectImage("green mask");
 	run("Clear Results");
 	roiManager("Measure");
 	rgcount=0;
@@ -218,4 +219,6 @@ function measure()
  
 	run("Close All"); 
 	}
+
+
 
