@@ -1,7 +1,8 @@
 //Redone - Bea C. 2016
+//original macro by Lai Ding at Harvard
 
 // ImageJ initialize
-run("Colors...", "foreground=white background=black selection=yellow");
+run("Colors...", "foreground=white background=black selection=magenta");
 run("Options...", "iterations=1 count=1 black edm=Overwrite");
 run("Set Measurements...", "area perimeter area_fraction limit redirect=None decimal=3");
 
@@ -10,7 +11,7 @@ run("Set Measurements...", "area perimeter area_fraction limit redirect=None dec
 // result folder should be empty.
 rawdir=getDirectory("Choose Raw Data Folder");
 resultdir=getDirectory("Choose Result Folder");
-axondir=getDirectory("Choose AxonShow Folder");
+axondir=getDirectory("Choose Dendrites Folder");
 
 //variable setup
 var greenThreshold, redThreshold, areapercent, scale, minsize, maxsize, name, gcount, rcount, grcount, rgcount, axonlength, axonflag
@@ -22,17 +23,16 @@ print("Raw_Folder:	"+rawdir);
 print("Result_Folder:	"+resultdir);
 print("GreenThreshold	RedThreshold	AreaPercent(%)	PixelScale(um/pixel)	Min_Puncta_Size	Max_Puncta_Size");
 print(greenThreshold+"	"+redThreshold+"	"+areapercent+"	"+scale+"	"+minsize+"	"+maxsize);
-print(" 	GreenPuncta#	RedPuncta#	GR#	RG#	AxonLength(um)	Density_G(#/um)	Density_R(#/um)");
-
-//OK! so I think what's happening here is the mkdir command is broken and so there's no path for it to find 
-//the new folder - need to make a path.
-
+print(" 	GreenPuncta#	RedPuncta#	GR#	RG#	AxonLength(um)	Density_G(#/um)	Density_R(#/um)	Density_GR(#/um)	Density_RG(#/um)");
 
 folderlist=getFileList(rawdir);
 
+//the below code was added as apart of a replacement for a javascript that automatically created and selected a subfolder 
+//for the result data. It broke and there is now an imagej language only fix.
+
 Dialog.create("Conditions");
 	Dialog.addMessage("How many conditions do you have?");
-	conditions = newArray(1,2,3,4,5);
+	conditions = newArray(1,2,3,4,5,6,7,8);
 	Dialog.setInsets(2,40,2);
 	Dialog.addChoice("",conditions);
 Dialog.show();
@@ -71,6 +71,9 @@ selectWindow("Log"); run("Close");
 selectWindow("Results"); run("Close");
 selectWindow("ROI Manager"); run("Close");
 
+//the following functions are listed in order of use in the macro
+
+//thresholding parameters are generally the only ones that need changing, but all can be modified
 function parameterinput()
 	{
 	Dialog.create("Parameter");
@@ -88,7 +91,9 @@ function parameterinput()
 	minsize = Dialog.getNumber();  
 	maxsize = Dialog.getNumber();  
 	}
-
+	
+//this function opens the appropriate image from the appropriate folder in the raw data folder
+//gets the name, standardizes the properties of the image, splits the channels and discards the blue channel as "axon" to be saved elsewhere
 function initialize()
  {
 	open(rawdir+foldername+File.separator+rawlist[d]);
@@ -100,6 +105,10 @@ function initialize()
 	selectImage(name+" (red)"); rename("red");
  }
 
+//this function creates a mask for the selected color channel (green or red). 
+//it takes the threshold indicated in the parameter input, uses it to point out the maxima 
+//and then runs "analyze particles" within the specified puncta size, saves the number of puncta as a string, saves the ROI, 
+//and saves the mask
 function mask(channel)
 	{
 	selectImage(channel);
@@ -151,6 +160,8 @@ function mask(channel)
 	roiManager("reset");
 	}
 
+//this function increases the contrast for the blue channel (marking dendrites even though it says axons)
+//and measures the length of the segment (even though this is usually also done manually as a precaution)
 function axon()
 	{
 	selectImage("axon");
@@ -182,6 +193,12 @@ function axon()
 	roiManager("reset"); 
 	run("Clear Results");
 	}
+
+//this function opens the saved ROI files for the green and red channels of each image and overlays them
+//either using the green mask as the base image and checking for overlap of the red puncta or vice versa
+//because the puncta sizes differ, this can be pretty variable between G and R
+//upon checking by hand, at 25% overlap, the one that most closely aligns is GR
+//this is also the last step in the analysis process for a single image, so it prints out the results of the image.
 function measure()
 	{
 	if( gcount > 0 ) {
@@ -214,11 +231,8 @@ function measure()
 	roiManager("reset"); 
 	run("Clear Results");
 	
-	//print(" 	GreenPuncta#	RedPuncta#	GR#	RG#	AxonLength(um)	Density_G(um/#)	Density_R(um/#)");
-	print(name+"	"+gcount+"	"+rcount+"	"+grcount+"	"+rgcount+"	"+axonlength+"	"+(gcount/axonlength)+"	"+(rcount/axonlength));
+	//print(" 	GreenPuncta#	RedPuncta#	GR#	RG#	AxonLength(um)	Density_G(um/#)	Density_R(um/#) Density_RG(um/#) Density_GR(um/#)");
+	print(name+"	"+gcount+"	"+rcount+"	"+grcount+"	"+rgcount+"	"+axonlength+"	"+(gcount/axonlength)+"	"+(rcount/axonlength)+"	"+(rgcount/axonlength)+"	"+(grcount/axonlength));
  
 	run("Close All"); 
 	}
-
-
-
