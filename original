@@ -15,7 +15,7 @@ axondir=getDirectory("Choose Dendrites Folder");
 
 //variable setup
 var greenThreshold, redThreshold, areapercent, scale, minsize, maxsize, name, gcount, rcount, grcount, rgcount, axonlength, axonflag
-var greenstring, redstring, resultlist, FolderCreate, foldername;
+var greenstring, redstring, resultlist, FolderCreate, foldername, redgcount, greenrcount, totalredgcount, totalgreenrcount;
 // input parameter
 parameterinput();
 
@@ -23,7 +23,7 @@ print("Raw_Folder:	"+rawdir);
 print("Result_Folder:	"+resultdir);
 print("GreenThreshold	RedThreshold	AreaPercent(%)	PixelScale(um/pixel)	Min_Puncta_Size	Max_Puncta_Size");
 print(greenThreshold+"	"+redThreshold+"	"+areapercent+"	"+scale+"	"+minsize+"	"+maxsize);
-print(" 	GreenPuncta#	RedPuncta#	GR#	RG#	AxonLength(um)	Density_G(#/um)	Density_R(#/um)	Density_GR(#/um)	Density_RG(#/um)");
+print(" 	GreenPuncta#	RedPuncta#	GR#	RG#	AxonLength(um)	Density_G(#/um)	Density_R(#/um)	Density_GR(#/um)	Density_RG(#/um)	gr_%AreaAvg(counted)	gr_%AreaAvg(total)	gr_totalCounted	rg_%AreaAvg(counted)	rg_%AreaAvg(total)	rg_totalCounted");
 
 folderlist=getFileList(rawdir);
 
@@ -81,8 +81,8 @@ function parameterinput()
 		Dialog.addNumber("Red Threshold:", 30);
 		Dialog.addNumber("Area Percent (%):", 25);
 		Dialog.addNumber("Pixel Scale (um/pixel):", 0.1705);
-		Dialog.addNumber("Min Punta Size (pixel):", 1);
-		Dialog.addNumber("Max Punta Size (pixel):", 60);
+		Dialog.addNumber("Min Puncta Size (pixel):", 1);
+		Dialog.addNumber("Max Puncta Size (pixel):", 60);
 	Dialog.show();
 	greenThreshold = Dialog.getNumber();
 	redThreshold = Dialog.getNumber();
@@ -201,6 +201,10 @@ function axon()
 //this is also the last step in the analysis process for a single image, so it prints out the results of the image.
 function measure()
 	{
+	totalgreenrcount = 0;
+	totalredgcount = 0;
+	redgcount = 0;
+	greenrcount = 0;
 	if( gcount > 0 ) {
   		roiManager("Open", folderpath+name+"_green_ROI.zip");
 		}
@@ -208,11 +212,18 @@ function measure()
 	run("Clear Results");
 	roiManager("Measure");
 	grcount=0;
+	x = 0;
 	for(i=0;i<roiManager("Count");i++) {
+		totalgreenrcount = totalgreenrcount + getResult("%Area",i);
 		if( getResult("%Area",i) >= areapercent ) {
 			grcount++;
-			}
+			greenrcount = greenrcount + getResult("%Area",i);
 		}
+		x++;
+	}
+	xgreen = x;
+	totalgreenrcount = totalgreenrcount/x;
+	greenrcount = greenrcount/grcount;
 	roiManager("reset"); 
 	run("Clear Results");
 	
@@ -223,16 +234,23 @@ function measure()
 	run("Clear Results");
 	roiManager("Measure");
 	rgcount=0;
+	x = 0;
 	for(i=0;i<roiManager("Count");i++) {
+		totalredgcount = totalredgcount + getResult("%Area",i);
 		if( getResult("%Area",i) >= areapercent ) {
 			rgcount++;
-			}
+			redgcount = redgcount + getResult("%Area",i);
 		}
+		x++;
+	}
+	xred = x;
+	totalredgcount = (totalredgcount/x);
+	redgcount = redgcount/rgcount;
 	roiManager("reset"); 
 	run("Clear Results");
 	
 	//print(" 	GreenPuncta#	RedPuncta#	GR#	RG#	AxonLength(um)	Density_G(um/#)	Density_R(um/#) Density_RG(um/#) Density_GR(um/#)");
-	print(name+"	"+gcount+"	"+rcount+"	"+grcount+"	"+rgcount+"	"+axonlength+"	"+(gcount/axonlength)+"	"+(rcount/axonlength)+"	"+(rgcount/axonlength)+"	"+(grcount/axonlength));
+	print(name+"	"+gcount+"	"+rcount+"	"+grcount+"	"+rgcount+"	"+axonlength+"	"+(gcount/axonlength)+"	"+(rcount/axonlength)+"	"+(rgcount/axonlength)+"	"+(grcount/axonlength)+"	"+greenrcount+"	"+totalgreenrcount+"	"+xgreen+"	"+redgcount+"	"+totalredgcount+"	"+xred);
  
 	run("Close All"); 
 	}
