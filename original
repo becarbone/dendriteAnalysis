@@ -1,4 +1,4 @@
-//Redone - Bea C. 2016
+//Redone - Bea C. 2018
 //original macro by Lai Ding at Harvard
 
 // ImageJ initialize
@@ -17,37 +17,37 @@ axondir=getDirectory("Choose Dendrites Folder");
 var greenThreshold, redThreshold, areapercent, scale, minsize, maxsize, name, gcount, rcount, grcount, rgcount, axonlength, axonflag
 var greenstring, redstring, resultlist, FolderCreate, foldername, redgcount, greenrcount, totalredgcount, totalgreenrcount;
 // input parameter
+run("Set Measurements...", "area perimeter integrated area_fraction limit redirect=None decimal=5");
 parameterinput();
 
 print("Raw_Folder:	"+rawdir);
 print("Result_Folder:	"+resultdir);
 print("GreenThreshold	RedThreshold	AreaPercent(%)	PixelScale(um/pixel)	Min_Puncta_Size	Max_Puncta_Size");
 print(greenThreshold+"	"+redThreshold+"	"+areapercent+"	"+scale+"	"+minsize+"	"+maxsize);
-print(" 	GreenPuncta#	RedPuncta#	GR#	RG#	AxonLength(um)	Density_G(#/um)	Density_R(#/um)	Density_GR(#/um)	Density_RG(#/um)	gr_%AreaAvg(counted)	gr_%AreaAvg(total)	gr_totalCounted	rg_%AreaAvg(counted)	rg_%AreaAvg(total)	rg_totalCounted");
+print(" 	GreenPuncta#	RedPuncta#	GR#	RG#	DendriteLength(um)	Density_G(#/um)	Density_R(#/um)	Density_GR(#/um)	Density_RG(#/um)		gr_%AreaAvg(counted)	gr_%AreaAvg(total)	gr_totalCounted	rg_%AreaAvg(counted)	rg_%AreaAvg(total)	rg_totalCounted");
 
 folderlist=getFileList(rawdir);
 
 //the below code was added as apart of a replacement for a javascript that automatically created and selected a subfolder 
 //for the result data. It broke and there is now an imagej language only fix.
 
-Dialog.create("Conditions");
-	Dialog.addMessage("How many conditions do you have?");
-	conditions = newArray(1,2,3,4,5,6,7,8);
-	Dialog.setInsets(2,40,2);
-	Dialog.addChoice("",conditions);
-Dialog.show();
-FolderCreate = Dialog.getChoice();
-
-for(f=0;f<FolderCreate;f++) 
+//Dialog.create("Conditions");
+//	Dialog.addMessage("How many conditions do you have?");
+//	conditions = newArray(1,2,3,4,5,6,7,8);
+//	Dialog.setInsets(2,40,2);
+//	Dialog.addChoice("",conditions);
+//Dialog.show();
+//FolderCreate = Dialog.getChoice();
+//
+for(f=0;f<folderlist.length;f++) 
 	{
 	greenstring="Filename	#	Area	Perim	%Area\n";
 	redstring="Filename	#	Area	Perim	%Area\n";
 	foldername = File.getName(rawdir+folderlist[f]);
 	File.makeDirectory(resultdir+foldername);
-	folderpath = getDirectory("Choose folder for condition " + (f+1)); 
 	rawlist=getFileList(rawdir+foldername);
 	filelist=getFileList(rawdir+folderlist[f]);
-	resultpath = getFileList(folderpath);
+	resultpath = getFileList(rawdir+folderlist[f]);
 	print(folderlist[f]);
 	for(d=0;d<filelist.length;d++)
 		{
@@ -60,10 +60,10 @@ for(f=0;f<FolderCreate;f++)
 		axon();
 		//measure
 		measure();
-		temptitle = File.getName(folderpath);
+		temptitle = File.getName(rawdir+folderlist[f]);
 		}
-	File.saveString(greenstring, folderpath+temptitle+"_GreenArea.xls");
-	File.saveString(redstring, folderpath+temptitle+"_RedArea.xls");  
+	File.saveString(greenstring, resultdir+folderlist[f]+temptitle+"_GreenArea.xls");
+	File.saveString(redstring, resultdir+folderlist[f]+temptitle+"_RedArea.xls");  
 	}
 selectWindow("Log");
 saveAs("Text", resultdir+"Summary.xls");
@@ -123,7 +123,7 @@ function mask(channel)
 	run("Analyze Particles...", "size="+minsize+"-"+maxsize+" pixel show=Masks add");
 	selectWindow("Mask of "+channel+" Segmented");  
 	run("Grays");
-	saveAs("Tiff", folderpath+name+"_"+channel+"_mask.tif");
+	saveAs("Tiff", resultdir+folderlist[f]+name+"_"+channel+"_mask.tif");
 	run("Clear Results");
 	roiManager("Measure");
 	selectWindow("Results");
@@ -155,7 +155,7 @@ function mask(channel)
   
 	if( roiManager("Count") > 0 )
 		{
-		roiManager("Save",folderpath+name+"_"+channel+"_ROI.zip");
+		roiManager("Save",resultdir+folderlist[f]+name+"_"+channel+"_ROI.zip");
 		}
 	roiManager("reset");
 	}
@@ -176,7 +176,7 @@ function axon()
 	axonlength=0;
 	if( roiManager("Count") > 0 )
 		{
-		roiManager("Save", folderpath+name+"_axon.zip");
+		roiManager("Save", resultdir+folderlist[f]+name+"_axon.zip");
 		run("Clear Results");
 		roiManager("Measure");
 
@@ -206,7 +206,7 @@ function measure()
 	redgcount = 0;
 	greenrcount = 0;
 	if( gcount > 0 ) {
-  		roiManager("Open", folderpath+name+"_green_ROI.zip");
+  		roiManager("Open", resultdir+folderlist[f]+name+"_green_ROI.zip");
 		}
 	selectImage("red mask");
 	run("Clear Results");
@@ -228,7 +228,7 @@ function measure()
 	run("Clear Results");
 	
 	if( rcount > 0 ) {
-  		roiManager("Open", folderpath+name+"_red_ROI.zip");
+  		roiManager("Open", resultdir+folderlist[f]+name+"_red_ROI.zip");
 		}
 	selectImage("green mask");
 	run("Clear Results");
@@ -250,7 +250,7 @@ function measure()
 	run("Clear Results");
 	
 	//print(" 	GreenPuncta#	RedPuncta#	GR#	RG#	AxonLength(um)	Density_G(um/#)	Density_R(um/#) Density_RG(um/#) Density_GR(um/#)");
-	print(name+"	"+gcount+"	"+rcount+"	"+grcount+"	"+rgcount+"	"+axonlength+"	"+(gcount/axonlength)+"	"+(rcount/axonlength)+"	"+(rgcount/axonlength)+"	"+(grcount/axonlength)+"	"+greenrcount+"	"+totalgreenrcount+"	"+xgreen+"	"+redgcount+"	"+totalredgcount+"	"+xred);
+	print(name+"	"+gcount+"	"+rcount+"	"+grcount+"	"+rgcount+"	"+axonlength+"	"+(gcount/axonlength)+"	"+(rcount/axonlength)+"	"+(rgcount/axonlength)+"	"+(grcount/axonlength)+"		"+greenrcount+"	"+totalgreenrcount+"	"+xgreen+"	"+redgcount+"	"+totalredgcount+"	"+xred);
  
 	run("Close All"); 
 	}
