@@ -1,0 +1,34 @@
+This macro is used to assess density and overlap of puncta along a dendrite.
+
+The requirements are:
+	-a folder with the dendrite ROI in subfolders by condition
+	(ex: raw data/ctrl, raw data/DHA, raw data/Inos)
+	-an empty folder for the dendrite traces produced by the macro
+	-an empty folder for the results, autopopulates with subfolders
+	for each condition
+	-thresholds for the green and red channels
+
+The images have to be: 
+	-dendrite ROI selected along a marker (in the blue channel)
+	-flattened RGB images
+	-puncta of interest in red and green channels
+	-dendrite length should be approx 20<x<40um
+
+Nothing needs to be open when you start this macro.
+
+A menu will pop up asking for several parameters:
+	-green threshold
+	-red threshold
+	-area percent (how much % of an ROI should overlap w/
+	the mask it is on to count as "co-localized")
+	-pixel scale: dependent on image, different between 1024, 2048
+	(specified in the image properties)
+	-min and max puncta size in pixels
+
+Once you input parameters here, it will automatically go to completion.
+
+It produces:
+	-a "summary.xls" that has all of the densities/colocalizations
+	-a folder for each condition with the area of each puncta,
+	the masks and ROI for each image within the condition
+	-a dendrite tracing for each image
