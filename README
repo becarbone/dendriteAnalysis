@@ -32,3 +32,15 @@ It produces:
 	-a folder for each condition with the area of each puncta,
 	the masks and puncta ROI information for each image within the condition
 	-a dendrite tracing for each image
+
+This is used frequently to analyze density of synapses on dendrites.
+
+the "intensity ver" does everything that the original "dendrite analysis
+macro-BC2018" does, it just adds the element of analyzing intensity of
+signal in the original image.
+
+It duplicates the original image prior to making it into a mask
+and overlays the puncta ROI on the raw unmasked image to determine
+pixel intensity density.
+
+This is used for the cLTP project.
