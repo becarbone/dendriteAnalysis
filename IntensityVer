@@ -1,24 +1,23 @@
-//Redone - Bea C. 2016
+//Redone - Bea C. 2018
 //original macro by Lai Ding at Harvard
 
 // ImageJ initialize
 run("Colors...", "foreground=white background=black selection=magenta");
 run("Options...", "iterations=1 count=1 black edm=Overwrite");
-run("Set Measurements...", "area mean perimeter integrated area_fraction limit redirect=None decimal=5");
+run("Set Measurements...", "area perimeter area_fraction limit redirect=None decimal=3");
 
 //set raw result folder.   rawdir contains multiple subfolders, each subfolder contains multiple raw images
-//each image is RGB format
-//result and dendrites folders should be empty.
+// each image is RGB format
+// result folder should be empty.
 rawdir=getDirectory("Choose Raw Data Folder");
 resultdir=getDirectory("Choose Result Folder");
 axondir=getDirectory("Choose Dendrites Folder");
 
 //variable setup
-var greenThreshold, redThreshold, areapercent, scale, minsize, maxsize, name, gcount, rcount, grcount, rgcount, axonlength, axonflag;
+var greenThreshold, redThreshold, areapercent, scale, minsize, maxsize, name, gcount, rcount, grcount, rgcount, axonlength, axonflag
 var greenstring, redstring, resultlist, FolderCreate, foldername, redgcount, greenrcount, totalredgcount, totalgreenrcount;
-var UMcountrgrr, UMcountgrgg, str, GArray, RArray;
-
 // input parameter
+run("Set Measurements...", "area perimeter integrated area_fraction limit redirect=None decimal=5");
 parameterinput();
 
 print("Raw_Folder:	"+rawdir);
@@ -32,186 +31,45 @@ folderlist=getFileList(rawdir);
 //the below code was added as apart of a replacement for a javascript that automatically created and selected a subfolder 
 //for the result data. It broke and there is now an imagej language only fix.
 
-Dialog.create("Conditions");
-	Dialog.addMessage("How many conditions do you have?");
-	conditions = newArray(1,2,3,4,5,6,7,8);
-	Dialog.setInsets(2,40,2);
-	Dialog.addChoice("",conditions);
-Dialog.show();
-FolderCreate = Dialog.getChoice();
-
-//setup for the intensity analysis, overlay of ROI on unmasked channel
-//GR = green ROI/red image
-//GG = green ROI/green image
-//RG = red ROI/green image
-//RR = red ROI/red image
-
-GRArray = newArray("");
-GGArray = newArray("");
-RGArray = newArray("");
-RRArray = newArray("");
-
-//this is for the unmasked puncta quant string in the intensity analysis
-//grgg is using the green ROI over red/green image
-//rgrr is using the red ROI over the green/red image
-
-UMcountgrgg = " Filename	#	GR%Overlap	GRmeanGrey	GRint_density(um)	GRraw_int_den(pix)		GG%Overlap	GGmeanGrey	GGint_density(um)	GGraw_int_den(pix)\n";
-UMcountrgrr = "Filename	#	RG%Overlap	RGmeanGrey	RGint_density(um)	RGraw_int_den(pix)		RR%Overlap	RRmeanGrey	RRint_density(um)	RRraw_int_den(pix)\n";
-
-//this is for generation of result folders - at the time of making this, it didn't allow for autoselection
-//of the result folder with the code. Might be worth going back thru to see if it can be done a diff
-//way that reduces the input I've gotta do
-
-for(f=0;f<FolderCreate;f++) 
+//Dialog.create("Conditions");
+//	Dialog.addMessage("How many conditions do you have?");
+//	conditions = newArray(1,2,3,4,5,6,7,8);
+//	Dialog.setInsets(2,40,2);
+//	Dialog.addChoice("",conditions);
+//Dialog.show();
+//FolderCreate = Dialog.getChoice();
+//
+for(f=0;f<folderlist.length;f++) 
 	{
-	greenstring="Filename	#	Area	Perim\n";
-	redstring="Filename	#	Area	Perim\n";
+	greenstring="Filename	#	Area	Perim	%Area\n";
+	redstring="Filename	#	Area	Perim	%Area\n";
 	foldername = File.getName(rawdir+folderlist[f]);
 	File.makeDirectory(resultdir+foldername);
-	folderpath = getDirectory("Choose folder for condition " + (f+1)); 
 	rawlist=getFileList(rawdir+foldername);
 	filelist=getFileList(rawdir+folderlist[f]);
-	resultpath = getFileList(folderpath);
+	resultpath = getFileList(rawdir+folderlist[f]);
 	print(folderlist[f]);
-	GRArray = Array.concat(GRArray,folderlist[f]+"\n");
-	GGArray = Array.concat(GGArray,"");
-	RGArray = Array.concat(RGArray,folderlist[f]+"\n");
-	RRArray = Array.concat(RRArray,"");
 	for(d=0;d<filelist.length;d++)
 		{
-		//initialize :  open file, split channel, name by "red"/"green"/"axon"
+		// initialize :  open file, split channel, name by "red"/"green"/"axon"
 		initialize();
-		//create green red mask images and roi files
+		// create green red mask images and roi files
 		mask("green"); 
 		mask("red");
-		//mask axon, and get length;
+		// mask axon, and get length;
 		axon();
 		//measure
-		
-		//the function below was moved to be actual code because arrays don't populate within a fx in javascript/imagej language
-		//in imagej because it's dumb.
-
-		//this function opens the saved ROI files for the green and red channels of each image and overlays them
-		//either using the green mask as the base image and checking for overlap of the red puncta or vice versa
-		//because the puncta sizes differ, this can be pretty variable between G and R
-		//upon checking by hand, at 25% overlap, the one that most closely aligns is GR
-		totalgreenrcount = 0;
-		totalredgcount = 0;
-		redgcount = 0;
-		greenrcount = 0;
-		if( gcount > 0 ) {
- 	 		roiManager("Open", folderpath+name+"_green_ROI.zip");
-			}
-		selectImage("red mask");
-		run("Clear Results");
-		roiManager("Measure");
-		grcount=0;
-		x = 0;
-		for(i=0;i<roiManager("Count");i++) {
-			totalgreenrcount = totalgreenrcount + getResult("%Area",i);
-			if( getResult("%Area",i) >= areapercent ) {
-				grcount++;
-				greenrcount = greenrcount + getResult("%Area",i);
-			}
+		measure();
+		temptitle = File.getName(rawdir+folderlist[f]);
 		}
-
-		//channel-unmask is the direct image, without a mask
-
-		selectImage("red-unmask");
-		run("Clear Results");
-		roiManager("Measure");
-		for(i=0;i<roiManager("Count");i++) {
-			//this str just stores the values from the ROI measure function to be put into the appropriate array for the green ROI
-			str = filelist[d]+"	"+i+1+"	"+ getResult("%Area",i)+"	"+ getResult("Mean",i)+"	"+getResult("IntDen",i)+"	"+getResult("RawIntDen",i);
-			GRArray = Array.concat(GRArray,str);
-		}
-		selectImage("green-unmask");
-		run("Clear Results");
-		roiManager("Measure");
-		for(i=0;i<roiManager("Count");i++) {
-			str = "		"+getResult("%Area",i)+"	"+ getResult("Mean",i)+"	"+getResult("IntDen",i)+"	"+getResult("RawIntDen",i)+"\n";
-			GGArray = Array.concat(GGArray,str);
-		}	
-		xgreen = x;
-		totalgreenrcount = totalgreenrcount/x;
-		greenrcount = greenrcount/grcount;
-
-			roiManager("reset"); 
-		run("Clear Results");
-		
-		if( rcount > 0 ) {
- 	 		roiManager("Open", folderpath+name+"_red_ROI.zip");
-			}
-		selectImage("green mask");
-		run("Clear Results");
-		roiManager("Measure");
-		rgcount=0;
-		x = 0;
-		for(i=0;i<roiManager("Count");i++) {
-			totalredgcount = totalredgcount + getResult("%Area",i);
-			if(getResult("%Area",i) >= areapercent) {
-				rgcount++;
-				redgcount = redgcount + getResult("%Area",i);
-			}
-			x++;
-		}
-		selectImage("green-unmask");
-		run("Clear Results");
-		roiManager("Measure");
-		for(i=0;i<roiManager("Count");i++) {
-			//then the red ROI
-			str = filelist[d]+"	"+i+1+"	"+ getResult("%Area",i)+"	"+ getResult("Mean",i)+"	"+getResult("IntDen",i)+"	"+getResult("RawIntDen",i);
-			RGArray = Array.concat(RGArray,str);
-		}
-		selectImage("red-unmask");
-		run("Clear Results");
-		roiManager("Measure");
-		for(i=0;i<roiManager("Count");i++) {
-			str = "		"+getResult("%Area",i)+"	"+ getResult("Mean",i)+"	"+getResult("IntDen",i)+"	"+getResult("RawIntDen",i)+"\n";
-			RRArray = Array.concat(RRArray,str);
-		}
-		xred = x;
-		totalredgcount = (totalredgcount/x);
-		redgcount = redgcount/rgcount;
-		roiManager("reset"); 
-		run("Clear Results");
-		//prints this + variable strings produced from the other functions to the log to be saved
-		print(name+"	"+gcount+"	"+rcount+"	"+grcount+"	"+rgcount+"	"+axonlength+"	"+(gcount/axonlength)+"	"+(rcount/axonlength)+"	"+(rgcount/axonlength)+"	"+(grcount/axonlength)+"		"+greenrcount+"	"+totalgreenrcount+"	"+xgreen+"	"+redgcount+"	"+totalredgcount+"	"+xred);
-
-		run("Close All"); 
-
-		temptitle = File.getName(folderpath);
-		}
-	File.saveString(greenstring, folderpath+temptitle+"_GreenArea.xls");
-	File.saveString(redstring, folderpath+temptitle+"_RedArea.xls");  
-
+	File.saveString(greenstring, resultdir+folderlist[f]+temptitle+"_GreenArea.xls");
+	File.saveString(redstring, resultdir+folderlist[f]+temptitle+"_RedArea.xls");  
 	}
-
-//This takes the arrays and puts them into the string - they were arrays
-//because the method in which the ROI quant is collected only permits one measurement at a time
-//and swapping back and forth between images and measuring the image individually between
-//each single puncta seems less straightforward than just making it an array
-
-UMcountgrgg = UMcountgrgg + "greenROI/redImg							greenROI/greenImg\n";
-for(k=0;k<GRArray.length;k++)	{
-	UMcountgrgg = UMcountgrgg + GRArray[k] +GGArray[k];
-}
-UMcountrgrr = UMcountrgrr + "redROI/greenImg							redROI/redImg\n";
-for(k=0;k<RGArray.length;k++)	{
-	UMcountrgrr = UMcountrgrr + RGArray[k] +RRArray[k];
-}
-
-//these take the strings and the log and save them as tab separated excel sheets
 selectWindow("Log");
 saveAs("Text", resultdir+"Summary.xls");
-selectWindow("Log"); 
-run("Close");
-selectWindow("Results"); 
-run("Close");
-selectWindow("ROI Manager"); 
-run("Close");
-File.saveString(UMcountgrgg,resultdir+"rawGRintensity.xls");
-File.saveString(UMcountrgrr,resultdir+"rawRGintensity.xls");
+selectWindow("Log"); run("Close");
+selectWindow("Results"); run("Close");
+selectWindow("ROI Manager"); run("Close");
 
 //the following functions are listed in order of use in the macro
 
@@ -235,8 +93,7 @@ function parameterinput()
 	}
 	
 //this function opens the appropriate image from the appropriate folder in the raw data folder
-//gets the name, standardizes the properties of the image, splits the channels and discards the blue channel 
-//as "axon" to be saved elsewhere
+//gets the name, standardizes the properties of the image, splits the channels and discards the blue channel as "axon" to be saved elsewhere
 function initialize()
  {
 	open(rawdir+foldername+File.separator+rawlist[d]);
@@ -245,11 +102,7 @@ function initialize()
 	run("Split Channels");
 	rename("axon");
 	selectImage(name+" (green)"); rename("green");
-	run("Duplicate...", " ");
-	selectImage("green-1"); rename("green-unmask");
 	selectImage(name+" (red)"); rename("red");
-	run("Duplicate...", " ");
-	selectImage("red-1"); rename("red-unmask");
  }
 
 //this function creates a mask for the selected color channel (green or red). 
@@ -270,21 +123,21 @@ function mask(channel)
 	run("Analyze Particles...", "size="+minsize+"-"+maxsize+" pixel show=Masks add");
 	selectWindow("Mask of "+channel+" Segmented");  
 	run("Grays");
-	saveAs("Tiff", folderpath+name+"_"+channel+"_mask.tif");
+	saveAs("Tiff", resultdir+folderlist[f]+name+"_"+channel+"_mask.tif");
 	run("Clear Results");
 	roiManager("Measure");
 	selectWindow("Results");
-  	
+  
 	if( channel == "green")
 		{
 		for(j=0;j<nResults;j++) {
-			greenstring = greenstring+filelist[d]+"	"+j+1+"	"+getResult("Area",j)+"	"+getResult("Perim.",j)+"\n";
+			greenstring = greenstring+filelist[d]+"	"+j+1+"	"+getResult("Area",j)+"	"+getResult("Perim.",j)+" 	"+getResult("%Area",j)+"\n";
 			}
 		}
 	if( channel == "red")
 		{
 		for(j=0;j<nResults;j++) {
-			redstring = redstring+filelist[d]+"	"+j+1+"	"+getResult("Area",j)+"	"+getResult("Perim.",j)+"\n";
+			redstring = redstring+filelist[d]+"	"+j+1+"	"+getResult("Area",j)+"	"+getResult("Perim.",j)+" 	"+getResult("%Area",j)+"\n";
 			}
 		}
   
@@ -302,7 +155,7 @@ function mask(channel)
   
 	if( roiManager("Count") > 0 )
 		{
-		roiManager("Save",folderpath+name+"_"+channel+"_ROI.zip");
+		roiManager("Save",resultdir+folderlist[f]+name+"_"+channel+"_ROI.zip");
 		}
 	roiManager("reset");
 	}
@@ -323,7 +176,7 @@ function axon()
 	axonlength=0;
 	if( roiManager("Count") > 0 )
 		{
-		roiManager("Save", folderpath+name+"_axon.zip");
+		roiManager("Save", resultdir+folderlist[f]+name+"_axon.zip");
 		run("Clear Results");
 		roiManager("Measure");
 
@@ -341,5 +194,63 @@ function axon()
 	run("Clear Results");
 	}
 
-
-
+//this function opens the saved ROI files for the green and red channels of each image and overlays them
+//either using the green mask as the base image and checking for overlap of the red puncta or vice versa
+//because the puncta sizes differ, this can be pretty variable between G and R
+//upon checking by hand, at 25% overlap, the one that most closely aligns is GR
+//this is also the last step in the analysis process for a single image, so it prints out the results of the image.
+function measure()
+	{
+	totalgreenrcount = 0;
+	totalredgcount = 0;
+	redgcount = 0;
+	greenrcount = 0;
+	if( gcount > 0 ) {
+  		roiManager("Open", resultdir+folderlist[f]+name+"_green_ROI.zip");
+		}
+	selectImage("red mask");
+	run("Clear Results");
+	roiManager("Measure");
+	grcount=0;
+	x = 0;
+	for(i=0;i<roiManager("Count");i++) {
+		totalgreenrcount = totalgreenrcount + getResult("%Area",i);
+		if( getResult("%Area",i) >= areapercent ) {
+			grcount++;
+			greenrcount = greenrcount + getResult("%Area",i);
+		}
+		x++;
+	}
+	xgreen = x;
+	totalgreenrcount = totalgreenrcount/x;
+	greenrcount = greenrcount/grcount;
+	roiManager("reset"); 
+	run("Clear Results");
+	
+	if( rcount > 0 ) {
+  		roiManager("Open", resultdir+folderlist[f]+name+"_red_ROI.zip");
+		}
+	selectImage("green mask");
+	run("Clear Results");
+	roiManager("Measure");
+	rgcount=0;
+	x = 0;
+	for(i=0;i<roiManager("Count");i++) {
+		totalredgcount = totalredgcount + getResult("%Area",i);
+		if( getResult("%Area",i) >= areapercent ) {
+			rgcount++;
+			redgcount = redgcount + getResult("%Area",i);
+		}
+		x++;
+	}
+	xred = x;
+	totalredgcount = (totalredgcount/x);
+	redgcount = redgcount/rgcount;
+	roiManager("reset"); 
+	run("Clear Results");
+	
+	//print(" 	GreenPuncta#	RedPuncta#	GR#	RG#	AxonLength(um)	Density_G(um/#)	Density_R(um/#) Density_RG(um/#) Density_GR(um/#)");
+	print(name+"	"+gcount+"	"+rcount+"	"+grcount+"	"+rgcount+"	"+axonlength+"	"+(gcount/axonlength)+"	"+(rcount/axonlength)+"	"+(rgcount/axonlength)+"	"+(grcount/axonlength)+"		"+greenrcount+"	"+totalgreenrcount+"	"+xgreen+"	"+redgcount+"	"+totalredgcount+"	"+xred);
+ 
+	run("Close All"); 
+	}
