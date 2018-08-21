@@ -30,5 +30,5 @@ Once you input parameters here, it will automatically go to completion.
 It produces:
 	-a "summary.xls" that has all of the densities/colocalizations
 	-a folder for each condition with the area of each puncta,
-	the masks and ROI for each image within the condition
+	the masks and puncta ROI information for each image within the condition
 	-a dendrite tracing for each image
