@@ -254,6 +254,3 @@ function measure()
  
 	run("Close All"); 
 	}
-
-
-
