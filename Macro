@@ -6,7 +6,7 @@ run("Colors...", "foreground=white background=black selection=magenta");
 run("Options...", "iterations=1 count=1 black edm=Overwrite");
 run("Set Measurements...", "area perimeter area_fraction limit redirect=None decimal=3");
 
-//set raw result folder.   rawdir contains multiple subfolders, each subfolder contains multiple raw images
+//set raw result folder. rawdir contains multiple subfolders, each subfolder contains multiple raw images
 // each image is RGB format
 // result folder should be empty.
 rawdir=getDirectory("Choose Raw Data Folder");
@@ -89,7 +89,7 @@ function parameterinput()
 	areapercent = Dialog.getNumber();  
 	scale = Dialog.getNumber();  
 	minsize = Dialog.getNumber();  
-	maxsize = Dialog.getNumber();  
+	maxsize = Dialog.getNumber();
 	}
 	
 //this function opens the appropriate image from the appropriate folder in the raw data folder
@@ -98,11 +98,20 @@ function initialize()
  {
 	open(rawdir+foldername+File.separator+rawlist[d]);
 	name=getInfo("image.filename");
-	run("Properties...", "channels=1 slices=1 frames=1 unit=um pixel_width="+scale+" pixel_height=0.1705 voxel_depth=1");
+	getDimensions(width, height, channels, slices, frames);
+	if(channels != 1){
+		exit("Please convert your images to RGB format!");
+	}
+	if(slices != 1){
+		exit("Please compress your z-stack!");
+	}
+	run("Properties...", "channels=1 slices=1 frames=1 unit=um pixel_width="+scale+" pixel_height="+scale+" voxel_depth=1");
 	run("Split Channels");
 	rename("axon");
-	selectImage(name+" (green)"); rename("green");
-	selectImage(name+" (red)"); rename("red");
+	selectImage(name+" (green)"); 
+	rename("green");
+	selectImage(name+" (red)"); 
+	rename("red");
  }
 
 //this function creates a mask for the selected color channel (green or red). 
@@ -199,15 +208,14 @@ function axon()
 //because the puncta sizes differ, this can be pretty variable between G and R
 //upon checking by hand, at 25% overlap, the one that most closely aligns is GR
 //this is also the last step in the analysis process for a single image, so it prints out the results of the image.
-function measure()
-	{
+function measure() {
 	totalgreenrcount = 0;
 	totalredgcount = 0;
 	redgcount = 0;
 	greenrcount = 0;
 	if( gcount > 0 ) {
   		roiManager("Open", resultdir+folderlist[f]+name+"_green_ROI.zip");
-		}
+	}
 	selectImage("red mask");
 	run("Clear Results");
 	roiManager("Measure");
@@ -229,7 +237,7 @@ function measure()
 	
 	if( rcount > 0 ) {
   		roiManager("Open", resultdir+folderlist[f]+name+"_red_ROI.zip");
-		}
+	}
 	selectImage("green mask");
 	run("Clear Results");
 	roiManager("Measure");
@@ -253,4 +261,4 @@ function measure()
 	print(name+"	"+gcount+"	"+rcount+"	"+grcount+"	"+rgcount+"	"+axonlength+"	"+(gcount/axonlength)+"	"+(rcount/axonlength)+"	"+(rgcount/axonlength)+"	"+(grcount/axonlength)+"		"+greenrcount+"	"+totalgreenrcount+"	"+xgreen+"	"+redgcount+"	"+totalredgcount+"	"+xred);
  
 	run("Close All"); 
-	}
+}
